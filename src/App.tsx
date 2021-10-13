@@ -7,7 +7,7 @@ const tableData = []
 
 
 function App() {
-    const [picData, setPicData] = useState<any>();
+    const [picData, setPicData] = useState<item[]>([]);
     const [pageNo, setPageNo] = useState<number>(1);
     const [chunkedArray, setChunkedArray] = useState<any[]>([]);
     // eslint-disable-next-line
@@ -25,7 +25,8 @@ function App() {
             try {
                 setIsLoading(true);
                 const res: any = await getData(pageNo)
-                setPicData((current:any) => ([...current, ...res]));
+                console.log(res)
+                setPicData((current:item[]) => ([...current,...res.results]));
 
                 tableData.push(res)
                 setPageNo(prev => ++prev)
@@ -51,7 +52,7 @@ function App() {
 
 
     return (
-        <div onScroll={e => console.log(e)} style={{height: "100vh", overflow: "hidden auto"}} className='ImageAPI'>
+        <div onScroll={e => console.log(e)} style={{height: "60vh",backgroundColor:"#4444", overflow: "hidden auto",margin:"20vh 10vw" , width:"80vw"}} className='ImageAPI'>
             <table className='table'>
                 <thead>
                 <tr>
@@ -60,7 +61,7 @@ function App() {
                 </tr>
                 </thead>
                 <tbody>
-                {picData?.results.map((item: any) => {
+                {picData.map(item => {
                     return (
                         <tr key={item.id}>
                             <td>{item.application_number}</td>
