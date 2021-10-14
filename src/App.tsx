@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 // import axios from 'axios';
 
 import {getData, item} from "./data"
@@ -14,6 +14,11 @@ function App() {
     const [moreData, setMoreData] = useState<number>(10);
     // eslint-disable-next-line
     const [isLoading, setIsLoading] = useState(false);
+
+    const ref = useRef<any>()
+
+    console.log('reeeeeeeeef',ref);
+    
 
 
     console.log('chunked', chunkedArray);
@@ -50,9 +55,22 @@ function App() {
         // setMoreData((moreCat) => moreCat + 10);
     };
 
+    const handleScroll = useCallback(() => {
+        console.log("scrolling");
+      }, []);
+
+
+      useEffect(() => {
+        const div = ref.current;
+        console.log("Div is ", div);
+        if (div) {
+          div.addEventListener("scroll", handleScroll);
+        }
+      }, [handleScroll]);
+
 
     return (
-        <div onScroll={e => console.log(e)} style={{height: "60vh",backgroundColor:"#4444", overflow: "hidden auto",margin:"20vh 10vw" , width:"80vw"}} className='ImageAPI'>
+        <div ref={ref} onScroll={e => console.log(e)} style={{height: "60vh",backgroundColor:"#4444", overflow: "hidden auto",margin:"20vh 10vw" , width:"80vw"}} >
             <table className='table'>
                 <thead>
                 <tr>
