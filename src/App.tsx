@@ -1,76 +1,107 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, {useState, useEffect, UIEvent, EventHandler} from 'react';
 // import axios from 'axios';
 
-import {getData, item} from "./data"
+import {getData, item} from "./data";
 
-const tableData = []
+let v = 0
+let prevPosition = 0
 
+const dataCount = 20
+const maxPageCount = 5
+
+const FetchedData: item[][] = []
+
+const getPageCountFromData = (length: number) => ~~(length / dataCount) + (~~(length / dataCount) * dataCount < length ? 1 : 0)
+
+const itemHeight = 50
+let pageCount = -1
 
 function App() {
+    console.log(`render Count ${v++}`)
     const [picData, setPicData] = useState<item[]>([]);
-    const [pageNo, setPageNo] = useState<number>(1);
-    const [chunkedArray, setChunkedArray] = useState<any[]>([]);
-    // eslint-disable-next-line
-    const [moreData, setMoreData] = useState<number>(10);
-    // eslint-disable-next-line
-    const [isLoading, setIsLoading] = useState(false);
-
-    const ref = useRef<any>()
-
-    console.log('reeeeeeeeef',ref);
-    
+    const [pageNo, setPageNo] = useState<number>(0)
 
 
-    console.log('chunked', chunkedArray);
+    const fetchData = async (event?: UIEvent<HTMLElement>) => {
 
+        if (pageNo === pageCount) return
+        if (FetchedData[pageNo + 1]?.length) {
+            setPicData((current: item[]) => {
+                if (pageNo <= maxPageCount) return ([...current, ...FetchedData[pageNo + 1]])
+                return [...current.slice(dataCount, maxPageCount * dataCount + 1), ...FetchedData[pageNo + 1]];
+            });
+            setPageNo(prev => ++prev)
+            return
+        }
+
+        try {
+
+            const res: any = await getData(pageNo)
+            // console.log(res)
+
+            setPicData((current: item[]) => {
+                if (pageNo < maxPageCount) {
+                    return ([...current, ...res.results.map((item: item, index: number) => ({
+                        ...item,
+                        index: pageNo * dataCount + index
+                    }))])
+                }
+                // @ts-ignore
+                if (event) event.target.scrollTop -= dataCount * itemHeight / 2
+                return [...current.slice(dataCount, maxPageCount * dataCount), ...res.results.map((item: item, index: number) => ({
+                    ...item,
+                    index: pageNo * dataCount + index
+                }))];
+            });
+            setPageNo(prev => ++prev)
+            FetchedData.push(res.results.map((item: item, index: number) => ({
+                ...item,
+                index: pageNo * dataCount + index
+            })))
+            const resPageCount = getPageCountFromData(~~res.count)
+            if (pageCount !== resPageCount) pageCount = resPageCount
+        } catch (err) {
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            let tempArray = []
-            try {
-                setIsLoading(true);
-                const res: any = await getData(pageNo)
-                console.log(res)
-                setPicData((current:item[]) => ([...current,...res.results]));
-
-                tableData.push(res)
-                setPageNo(prev => ++prev)
-
-                // for (let index = 0; index < res.results.length; index += 5) {
-                //   let myChunk = res?.results.slice(index, index + 5);
-                //   tempArray.push(myChunk);
-                //   setChunkedArray(tempArray)
-                // }
-
-            } catch (err) {
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
+        fetchData().then(r => r);
     }, []);
 
 
-    const loadMore = () => {
-        // setMoreData((moreCat) => moreCat + 10);
-    };
+    const handleScroll: EventHandler<UIEvent<HTMLElement>> = (event: UIEvent<HTMLElement>) => {
+        const target = event.target as HTMLElement;
+        const currentScrollY = target.scrollTop;
 
-    const handleScroll = useCallback(() => {
-        console.log("scrolling");
-      }, []);
+        if (Math.abs(prevPosition - currentScrollY) < 50) return
+        if (prevPosition < currentScrollY && target.scrollTop > (target.scrollHeight - target.offsetHeight) - 100) fetchData(event).then(r => r)
+
+        if (prevPosition > currentScrollY && target.scrollTop < 100) getPrevData(event)
+
+        prevPosition = currentScrollY
+
+    }
 
 
-      useEffect(() => {
-        const div = ref.current;
-        console.log("Div is ", div);
-        if (div) {
-          div.addEventListener("scroll", handleScroll);
-        }
-      }, [handleScroll]);
+    const getPrevData = (event: UIEvent<HTMLElement>) => {
+        if (pageNo < maxPageCount) return
+        setPicData(current => ([...FetchedData[pageNo - maxPageCount], ...current.slice(0, (maxPageCount - 1) * dataCount)]))
+        // @ts-ignore
+        event.target.scrollTop += dataCount * itemHeight / 2
+        setPageNo(prev => --prev)
+    }
+
+    console.log({FetchedData, pageCount, pageNo, dataCount: picData.length})
 
 
     return (
-        <div ref={ref} onScroll={e => console.log(e)} style={{height: "60vh",backgroundColor:"#4444", overflow: "hidden auto",margin:"20vh 10vw" , width:"80vw"}} >
+        <div onScroll={handleScroll} style={{
+            height: "60vh",
+            backgroundColor: "#4444",
+            overflow: "hidden auto",
+            margin: "20vh 10vw",
+            width: "80vw"
+        }}>
             <table className='table'>
                 <thead>
                 <tr>
@@ -81,9 +112,10 @@ function App() {
                 <tbody>
                 {picData.map(item => {
                     return (
-                        <tr key={item.id}>
+                        <tr>
+                            <td>{item.index || 0}</td>
                             <td>{item.application_number}</td>
-                            <td><img style={{height: 200, width: 200}} src={item.logo} alt=''/></td>
+                            <td><img style={{height: itemHeight, width: 200}} src={item.logo} alt=''/></td>
                         </tr>
                     )
                 })}
@@ -94,4 +126,13 @@ function App() {
     );
 }
 
-export default App;
+export const MemorizedApp = React.memo(App);
+
+
+// for (let index = 0; index < res.results.length; index += 5) {
+//   let myChunk = res?.results.slice(index, index + 5);
+//   tempArray.push(myChunk);
+//   setChunkedArray(tempArray)
+// }
+
+

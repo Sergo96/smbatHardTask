@@ -1237,7 +1237,7 @@ const obj = {
 
 
 export interface item {
-
+index?:number
     "id": number | string,
     "logo": string,
     "name": string,
@@ -1280,6 +1280,7 @@ export interface item {
     "state": number
 }
 
+// eslint-disable-next-line
 type resData = {
     count: string | number | null
     previous: string | number | null
@@ -1287,6 +1288,7 @@ type resData = {
     results: item[]
 }
 export const getData = async (page: number): Promise<unknown> => new Promise((resolve, reject) => {
+    console.log(`det data for ${page} page`)
     resolve(obj)
 });
   
